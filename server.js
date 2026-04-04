@@ -86,7 +86,7 @@ ${existingPlan}
 // Health check
 // ----------------------------
 app.get("/", (req, res) => {
-  res.send("AI Itinerary Backend is running!");
+  res.status(200).send("AI Itinerary Backend is running!");
 });
 
 // Start server
