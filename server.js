@@ -57,39 +57,38 @@ app.post("/generate", async (req, res) => {
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a strict JSON generator. Always return ONLY valid JSON. No explanation, no markdown, no extra text.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
       max_tokens: 1000,
-      response_format: { type: "json_object" }, // ✅ FORCE JSON
+      response_format: { type: "json_object" }, // forces machine-readable JSON
     });
 
-    // ✅ Extract safely
+    // Extract safely
     const content = response.choices?.[0]?.message?.content;
 
     if (!content) {
-      return res.status(500).json({
-        error: "Empty response from AI",
-      });
+      return res.status(500).json({ error: "Empty response from AI" });
     }
 
     let parsedPlan;
 
     try {
-      parsedPlan = JSON.parse(content); // ✅ SAFE PARSE
+      parsedPlan = JSON.parse(content); // safe parse
     } catch (parseError) {
       console.error("❌ JSON Parse Error:", content);
-
-      return res.status(500).json({
-        error: "Invalid JSON from AI",
-        raw: content, // 🔥 Debug help
-      });
+      return res.status(500).json({ error: "Invalid JSON from AI", raw: content });
     }
 
-    console.log("✅ Generated plan:", parsedPlan);
-
-    res.status(200).json({
-      message: "success",
-      plan: parsedPlan,
-    });
+    res.status(200).json({ message: "success", plan: parsedPlan });
 
   } catch (error) {
     console.error("❌ Server Error:", error);
