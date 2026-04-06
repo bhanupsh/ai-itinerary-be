@@ -2,6 +2,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import buildItineraryPrompt from "./services/itineraryPrompt.js";
+//import jsonData from "./services/sampleJson.js";
 import OpenAI from "openai";
 
 dotenv.config();
@@ -23,33 +25,79 @@ const openai = new OpenAI({
 // ----------------------------
 app.post("/generate", async (req, res) => {
   try {
-    const { location, budget, interests, days } = req.body;
-    console.log("Received request:", { location, budget, interests, days });
-    // Clean interests array
-    const cleanInterests = interests.map((i) => i.trim()).join(", ");
+    const {
+      startDate,
+      endDate,
+      location,
+      location2,
+      persons,
+      budget,
+      interests,
+    } = req.body;
 
-    const prompt = `
-Create a ${days}-day travel itinerary for ${location}. 
-Budget: ₹${budget}. 
-Interests: ${cleanInterests}. 
-Provide a day-wise plan with activities, food, sightseeing, and nightlife if relevant.
-`;
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // smaller, cheaper GPT-4 variant
-      //model: "gpt-4o", // full GPT-4 for better quality,
-      //model: "gpt-4", // latest GPT-4 variant with improved reasoning
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 1000,
+    console.log("Received request:", {
+      startDate,
+      endDate,
+      location,
+      location2,
+      persons,
+      budget,
+      interests,
     });
 
-    const plan = response.choices[0].message.content;
+    const prompt = await buildItineraryPrompt({
+      location,
+      location2,
+      startDate,
+      endDate,
+      persons,
+      budget,
+      interests,
+    });
 
-    console.log("Generated plan:", plan);
-    res.json({ plan });
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1000,
+      response_format: { type: "json_object" }, // ✅ FORCE JSON
+    });
+
+    // ✅ Extract safely
+    const content = response.choices?.[0]?.message?.content;
+
+    if (!content) {
+      return res.status(500).json({
+        error: "Empty response from AI",
+      });
+    }
+
+    let parsedPlan;
+
+    try {
+      parsedPlan = JSON.parse(content); // ✅ SAFE PARSE
+    } catch (parseError) {
+      console.error("❌ JSON Parse Error:", content);
+
+      return res.status(500).json({
+        error: "Invalid JSON from AI",
+        raw: content, // 🔥 Debug help
+      });
+    }
+
+    console.log("✅ Generated plan:", parsedPlan);
+
+    res.status(200).json({
+      message: "success",
+      plan: parsedPlan,
+    });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: error.message });
+    console.error("❌ Server Error:", error);
+
+    res.status(500).json({
+      error: "Something went wrong",
+      details: error.message,
+    });
   }
 });
 
