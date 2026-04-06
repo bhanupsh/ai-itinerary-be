@@ -57,38 +57,39 @@ app.post("/generate", async (req, res) => {
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a strict JSON generator. Always return ONLY valid JSON. No explanation, no markdown, no extra text.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
+      messages: [{ role: "user", content: prompt }],
       max_tokens: 1000,
-      response_format: { type: "json_object" }, // forces machine-readable JSON
+      response_format: { type: "json_object" }, // ✅ FORCE JSON
     });
 
-    // Extract safely
+    // ✅ Extract safely
     const content = response.choices?.[0]?.message?.content;
 
     if (!content) {
-      return res.status(500).json({ error: "Empty response from AI" });
+      return res.status(500).json({
+        error: "Empty response from AI",
+      });
     }
 
     let parsedPlan;
 
     try {
-      parsedPlan = JSON.parse(content); // safe parse
+      parsedPlan = JSON.parse(content); // ✅ SAFE PARSE
     } catch (parseError) {
       console.error("❌ JSON Parse Error:", content);
-      return res.status(500).json({ error: "Invalid JSON from AI", raw: content });
+
+      return res.status(500).json({
+        error: "Invalid JSON from AI",
+        raw: content, // 🔥 Debug help
+      });
     }
 
-    res.status(200).json({ message: "success", plan: parsedPlan });
+    console.log("✅ Generated plan:", parsedPlan);
+
+    res.status(200).json({
+      message: "success",
+      plan: parsedPlan,
+    });
 
   } catch (error) {
     console.error("❌ Server Error:", error);
@@ -133,7 +134,7 @@ ${existingPlan}
 // Health check
 // ----------------------------
 app.get("/", (req, res) => {
-  res.status(200).send("AI Itinerary Backend is running!");
+  res.status(200).send("AI Itinerary Backend is running!.. V2");
 });
 
 // Start server
