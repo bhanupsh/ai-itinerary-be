@@ -58,7 +58,7 @@ app.post("/generate", async (req, res) => {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 1000,
+      max_tokens: 1200,
       response_format: { type: "json_object" }, // ✅ FORCE JSON
     });
 
@@ -135,7 +135,7 @@ ${existingPlan}
 // Health check
 // ----------------------------
 app.get("/", (req, res) => {
-  res.status(200).send("AI Itinerary Backend is running!.. V2");
+  res.status(200).send("AI Itinerary Backend is running!.. V3");
 });
 
 // Start server
